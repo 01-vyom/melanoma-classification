@@ -183,11 +183,10 @@ def main():
     auc_20_rank = roc_auc_score(dfs3['target'] == mel_idx, dfs3['pred'])
     
     falsePos, truePos, thresholds = roc_curve(dfs3['target'] == mel_idx, dfs3['pred'])
-    #np.save("FalsePos", falsePos)
-    #np.save("TruePos", truePos)
-    #np.save("Threshold", thresholds)
-
-    plt.plot_roc_curve(falsePos, truePos)
+    np.save("FalsePos", falsePos)
+    np.save("TruePos", truePos)
+    np.save("Threshold", thresholds)
+    #plt.plot_roc_curve(falsePos, truePos)
     plt.plot(falsePos, truePos, marker = '.', color='blue', label='ROC') 
     vector = np.vectorize(np.float)
     gmeans = np.array(sqrt(truePos * (1-falsePos)))
