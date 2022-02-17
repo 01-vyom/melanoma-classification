@@ -167,6 +167,9 @@ def main():
 
     dfs = pd.concat(dfs).reset_index(drop=True)
     dfs['pred'] = np.concatenate(PROBS).squeeze()[:, mel_idx]
+    
+    ##Adding dfs into csv file
+    np.savetxt('melData.csv', dfs, delimiter=',', fmt='%s')
 
     auc_all_raw = roc_auc_score(dfs['target'] == mel_idx, dfs['pred'])
 
