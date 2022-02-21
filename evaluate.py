@@ -118,7 +118,7 @@ def main():
     LOGITS = []
     PROBS = []
     dfs = []
-    for fold in range(1):
+    for fold in range(5):
 
         df_valid = df[df['fold'] == fold]
         if args.DEBUG:
@@ -126,8 +126,8 @@ def main():
                 df_valid[df_valid['target'] == mel_idx].sample(args.batch_size * 3),
                 df_valid[df_valid['target'] != mel_idx].sample(args.batch_size * 3)
             ])
-	
-        df_valid = df_valid.sample(7000,random_state=42).reset_index(drop = True)
+	#1500 Samples from 5 folds
+        df_valid = df_valid.sample(1500,random_state=42).reset_index(drop = True)
 
         dataset_valid = MelanomaDataset(df_valid, 'valid', meta_features, transform=transforms_val)
         valid_loader = torch.utils.data.DataLoader(dataset_valid, batch_size=args.batch_size, num_workers=args.num_workers)
@@ -167,12 +167,16 @@ def main():
 
     dfs = pd.concat(dfs).reset_index(drop=True)
     dfs['pred'] = np.concatenate(PROBS).squeeze()[:, mel_idx]
-    
-    ##Adding dfs into csv file
-    np.savetxt('melData.csv', dfs, delimiter=',', fmt='%s')
+    # Adding the melanoma index to the dataframe so that we can indentify the data correctly
+    dfs['mel_index'] = mel_idx
+    # Adding dfs into csv file for each model separately
+    dfs.to_csv('melData_'+args.kernel_type+'_.csv', index=False,sep=',')
 
     auc_all_raw = roc_auc_score(dfs['target'] == mel_idx, dfs['pred'])
 
+    # Using All raw AUC for G-Means
+    falsePos, truePos, thresholds = roc_curve(dfs['target'] == mel_idx, dfs['pred'])
+    
     dfs2 = dfs.copy()
     for i in range(5):
         dfs2.loc[dfs2['fold'] == i, 'pred'] = dfs2.loc[dfs2['fold'] == i, 'pred'].rank(pct=True)
@@ -185,7 +189,6 @@ def main():
         dfs3.loc[dfs3['fold'] == i, 'pred'] = dfs3.loc[dfs3['fold'] == i, 'pred'].rank(pct=True)
     auc_20_rank = roc_auc_score(dfs3['target'] == mel_idx, dfs3['pred'])
     
-    falsePos, truePos, thresholds = roc_curve(dfs3['target'] == mel_idx, dfs3['pred'])
     np.save("FalsePos", falsePos)
     np.save("TruePos", truePos)
     np.save("Threshold", thresholds)
