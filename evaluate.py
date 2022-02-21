@@ -25,7 +25,7 @@ from apex import amp
 from dataset import get_df, get_transforms, MelanomaDataset
 from models import Effnet_Melanoma, Resnest_Melanoma, Seresnext_Melanoma
 from train import get_trans
-
+import numpy as np
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -175,7 +175,7 @@ def main():
     auc_all_raw = roc_auc_score(dfs['target'] == mel_idx, dfs['pred'])
 
     # Using All raw AUC for G-Means
-    falsePos, truePos, thresholds = roc_curve(dfs['target'] == mel_idx, dfs['pred'])
+    fpr, tpr, thr = roc_curve(dfs['target'] == mel_idx, dfs['pred'])
     
     dfs2 = dfs.copy()
     for i in range(5):
@@ -189,32 +189,9 @@ def main():
         dfs3.loc[dfs3['fold'] == i, 'pred'] = dfs3.loc[dfs3['fold'] == i, 'pred'].rank(pct=True)
     auc_20_rank = roc_auc_score(dfs3['target'] == mel_idx, dfs3['pred'])
     
-    np.save("FalsePos", falsePos)
-    np.save("TruePos", truePos)
-    np.save("Threshold", thresholds)
-    #plt.plot_roc_curve(falsePos, truePos)
-    plt.plot(falsePos, truePos, marker = '.', color='blue', label='ROC') 
-    vector = np.vectorize(np.float)
-    gmeans = np.array(sqrt(truePos * (1-falsePos)))
-    gmeans = vector(gmeans)
-    
-    #indexes = np.argmax(gmeans)
-    #indexes = vector(indexes)
-    #print(indexes)
-    for ix in range(10):
-        index = np.argmax(gmeans)
-        print(index)
-        plt.scatter(falsePos[index], truePos[index], marker='o', color='black', label='Threshold')
-        print('Best Threshold=%f, G-Mean=%.3f' % (thresholds[index], gmeans[index]))
-        #plt.annotate('%.3f' % (thresholds[index]), (falsePos[index], truePos[index]), textcoords='data')
-        gmeans[index] = float('-inf')
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True positive rate')
-    plt.legend(loc = 'best')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.0])
-    plt.show()
-    plt.savefig('ROC',dpi=300)
+    #np.save("FalsePos-1", falsePos)
+    #np.save("TruePos-1", truePos)
+    #np.save("Threshold-1", thresholds)
 
     content = f'Eval {args.eval}:\nauc_all_raw : {auc_all_raw:.5f}\nauc_all_rank : {auc_all_rank:.5f}\nauc_20_raw : {auc_20_raw:.5f}\nauc_20_rank : {auc_20_rank:.5f}\n'
     print(content)
@@ -223,6 +200,26 @@ def main():
 
     np.save(os.path.join(args.oof_dir, f'{args.kernel_type}_{args.eval}_oof.npy'), dfs['pred'].values)
 
+    plt.plot(fpr, tpr, marker = '.', color='cyan', label='ROC')
+
+    gmeans = sqrt(tpr * (1-fpr))
+
+    count = 0
+    while count<10: 
+        ix = np.argmax(gmeans)
+        print('Best Threshold=%f, G-Mean=%.3f' % (thr[ix], gmeans[ix]))
+        plt.scatter(fpr[ix], tpr[ix], marker='o', color='black')
+        gmeans = np.delete(gmeans, ix)
+        count += 1
+        #print ("-----------")
+
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True positive rate')
+    plt.legend(loc = 'best')
+    #plt.xlim([0.0, 0.2])
+    #plt.ylim([0.8, 1.0])
+    plt.show()
+    plt.savefig('roc_curve'+args.kernel_type+'.png', dpi = 300)
 
 if __name__ == '__main__':
 
