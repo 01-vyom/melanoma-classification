@@ -203,15 +203,20 @@ def main():
     plt.plot(fpr, tpr, marker = '.', color='cyan', label='ROC')
 
     gmeans = sqrt(tpr * (1-fpr))
-
-    count = 0
-    while count<10: 
-        ix = np.argmax(gmeans)
-        print('Best Threshold=%f, G-Mean=%.3f' % (thr[ix], gmeans[ix]))
-        plt.scatter(fpr[ix], tpr[ix], marker='o', color='black')
-        gmeans = np.delete(gmeans, ix)
-        count += 1
-        #print ("-----------")
+    with open(os.path.join('./results_roc_curve/README.md'), 'a+') as appender:
+        test = '## Model (i):'+args.kernel_type+'\n'+'\n'
+        appender.write(test)
+        count = 0
+        while count<10: 
+            ix = np.argmax(gmeans)
+            val = 'Best Threshold=%f, G-Mean=%.3f' % (thr[ix], gmeans[ix])
+            print(val)
+            val_file = val+'\n'+'\n'
+            appender.write(val_file)
+            plt.scatter(fpr[ix], tpr[ix], marker='o', color='black')
+            gmeans = np.delete(gmeans, ix)
+            count += 1
+            #print ("-----------")
 
     plt.xlabel('False Positive Rate')
     plt.ylabel('True positive rate')
@@ -219,7 +224,7 @@ def main():
     #plt.xlim([0.0, 0.2])
     #plt.ylim([0.8, 1.0])
     plt.show()
-    plt.savefig('roc_curve'+args.kernel_type+'.png', dpi = 300)
+    plt.savefig('./results_roc_curve/roc_curve'+args.kernel_type+'.png', dpi = 300)
 
 if __name__ == '__main__':
 
