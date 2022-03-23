@@ -13,6 +13,7 @@ def pretty_per_num(num):
 
 
 def calc_metrics(pred, target, model_nm):
+    #target = np.array(target).astype(np.int8).tolist()
     auc_score = roc_auc_score(target, pred)
     fpr, tpr, thr = roc_curve(target, pred)
     gmeans = np.sqrt(tpr * (1 - fpr))
@@ -20,11 +21,11 @@ def calc_metrics(pred, target, model_nm):
     for i in range(len(thr)):
         temp_thr = thr[i]
         pred_thr = [True if p > temp_thr else False for p in pred]
-        tn, fp, fn, tp = confusion_matrix(pred_thr, target).ravel()
-        npv.append(tn / (tn + fn))
+        tn, fp, fn, tp = confusion_matrix(target, pred_thr).ravel()
+        npv.append(tn / (tn + fn + 1e-12))
     npv = np.array(npv)
     # Here whatever we want to maximize, just write that. i.e. np.argmax(npv) will maximize npv, and np.argmax(gmeans) will maximize gmeans.
-    ix = np.argmax(npv)
+    ix = np.argmax(gmeans)
     bestg = gmeans[ix]
     bestthr = thr[ix]
     bestnpv = npv[ix]
@@ -34,9 +35,10 @@ def calc_metrics(pred, target, model_nm):
         pretty_per_num(bestnpv),
     )
     pred_thr = [True if p > bestthr else False for p in pred]
-    tn, fp, fn, tp = confusion_matrix(pred_thr, target).ravel()
-    sensitivity = tp / (tp + fn)
-    specificity = tn / (tn + fp)
+    tn, fp, fn, tp = confusion_matrix(target, pred_thr).ravel()
+    sensitivity = tp / (tp + fn + 1e-12)   
+    specificity = tn / (tn + fp + 1e-12)
+    #import pdb; pdb.set_trace()
     print(
         "\nFollowing are the metrics for " + model_nm + ": AUC_Score:",
         pretty_per_num(auc_score),
@@ -49,7 +51,6 @@ def calc_metrics(pred, target, model_nm):
 
 
 def calculate_metric_ensemble(path):
-
     files = glob.glob(path)
 
     targets = {}
@@ -77,3 +78,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
