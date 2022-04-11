@@ -9,7 +9,7 @@
 #SBATCH --cpus-per-task=10            
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:a100:1
-#SBATCH --mem=100gb
+#SBATCH --mem=60gb
 #SBATCH --time=48:00:00
 
 echo "Date      = $(date)"
