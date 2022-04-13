@@ -132,3 +132,5 @@ pytorch1.5.0.sif
 cuda_11.6.0_510.39.01_linux.run
 ROC.png
 9c_meta_b3_768_512_ext_18ep_best_fold0.pth.zip
+
+.DS_Store

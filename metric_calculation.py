@@ -70,6 +70,13 @@ def calculate_metric_ensemble(path):
         calc_metrics(
             list(data["pred"]), list((data["target"] == data["mel_index"].iloc[0])), nm
         )
+        
+    targets = pd.DataFrame(targets)
+    preds = pd.DataFrame(preds)
+    col_nms = list(samessies.values())[0]
+    target = list(samessies.keys())[0]
+    #Calculate Ensemble Score
+    calc_metrics(list(preds[col_nms].mean(axis=1).values),target,'Ensemble')
 
 
 def main():
