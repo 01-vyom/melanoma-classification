@@ -1,5 +1,6 @@
 # data augmentations
 import random
+from metric_calculation import calc_metrics
 from kornia import augmentation as aug
 from kornia import filters
 from kornia.geometry import transform as tf
@@ -10,14 +11,15 @@ import cv2
 import numpy as np
 import pandas as pd
 import torch
-from tqdm import tqdm
 from copy import deepcopy
 from efficientnet_pytorch import EfficientNet
 from typing import Dict, List, Union, Callable, Tuple
+
 import pytorch_lightning as pl
 from torch import optim
 import torch.nn.functional as f
 import torch
+
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision.models import resnet101
 from numpy import random
@@ -272,33 +274,45 @@ def pretty_per_num(num):
 def metric_byol(model_nm, model, val_loader):
     model.cuda()
     preds_out = []
+    preds_probs = []
     classes_out = []
     with torch.no_grad():
         for i, (inputs, classes) in enumerate(val_loader):
             inputs = inputs.cuda()
             classes = classes.cuda()
             outputs = model(inputs)
-            _, preds = torch.max(outputs, 1)
+            soft_outs = outputs.softmax(1)
+            # Getting probability of the 1st index to be used for getting amximum threshold
+            pred_prob = soft_outs[:, 1].float().cpu().detach().numpy()
+            preds_probs.extend(pred_prob)
+            _, preds = torch.max(soft_outs, 1)
             preds_out.extend(preds.float().cpu().detach().numpy())
             classes_out.extend(classes.float().cpu().detach().numpy())
+    calc_metrics(preds_probs, classes_out, model_nm)
     tn, fp, fn, tp = confusion_matrix(classes_out, preds_out).ravel()
     accuracy = accuracy_score(classes_out, preds_out)
     sensitivity = tp / (tp + fn)
     specificity = tn / (tn + fp)
+    npv = tn / (tn + fn)
+    gmeans = np.sqrt(sensitivity * specificity)
     print(
-        "\nFollowing are the metrics for the model " + model_nm + " Sensitivity:",
+        "\nFollowing are the metrics for " + model_nm + ": Sensitivity:",
         pretty_per_num(sensitivity),
         "Specificity:",
         pretty_per_num(specificity),
         "Accuracy:",
         pretty_per_num(accuracy),
+        "NPV:",
+        pretty_per_num(npv),
+        "GMeans",
+        pretty_per_num(gmeans),
     )
 
 
 batch_size = 25
 data_folder = "512"
 data_dir = "/blue/daisyw/iharmon1/data/SIIM-ISIC/data/"
-savepath = "/blue/daisyw/v.pathak/Melanoma/"
+savepath = "."
 # 2020 data
 df_train = pd.read_csv(
     os.path.join(data_dir, f"jpeg-melanoma-{data_folder}x{data_folder}", "train.csv")
@@ -359,13 +373,13 @@ model = resnet101()
 model.load_state_dict(torch.load(savepath + "/" + model_nm))
 metric_byol(model_nm, model, val_loader)
 
-savepath = "./EfficientnetB5_Experiment1"
+savepath = "."
 model_nm = "BYOL_EfficientnetB5"
 model = EfficientNet.from_pretrained("efficientnet-b5")
 model.load_state_dict(torch.load(savepath + "/" + model_nm))
 metric_byol(model_nm, model, val_loader)
 
-savepath = "./EfficientnetB5_Experiment1"
+savepath = "."
 model_nm = "EfficientnetB5"
 model = EfficientNet.from_pretrained("efficientnet-b5")
 model.load_state_dict(torch.load(savepath + "/" + model_nm))

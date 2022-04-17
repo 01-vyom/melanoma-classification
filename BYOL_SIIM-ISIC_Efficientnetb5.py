@@ -1,5 +1,6 @@
 # data augmentations
 import random
+from metric_calculation import calc_metrics
 from kornia import augmentation as aug
 from kornia import filters
 from kornia.geometry import transform as tf
@@ -9,27 +10,20 @@ import os
 import cv2
 import numpy as np
 import pandas as pd
-import albumentations
 import torch
-from tqdm import tqdm
 from copy import deepcopy
-from itertools import chain
-from typing import Dict, List, Union, Callable, Tuple
 from efficientnet_pytorch import EfficientNet
+from typing import Dict, List, Union, Callable, Tuple
+
 import pytorch_lightning as pl
 from torch import optim
 import torch.nn.functional as f
-from torchvision.datasets import STL10
-from torchvision.transforms import ToTensor
 import torch
-import torchvision
 import torchvision.transforms as transforms
-from os import cpu_count
 
 from torch.utils.data import DataLoader, Dataset, random_split
-from torch.utils.data.sampler import RandomSampler, SequentialSampler
-from torchvision.models import resnet18, resnet101
 from numpy import random
+from sklearn.metrics import confusion_matrix, accuracy_score
 
 
 def seed_torch(seed=42):
@@ -273,8 +267,46 @@ class MelanomaDataset(Dataset):
             return data, torch.tensor(self.csv.iloc[index].target).long()
 
 
-def accuracy(pred: Tensor, labels: Tensor) -> float:
-    return (pred.argmax(dim=-1) == labels).float().mean().item()
+def pretty_per_num(num):
+    return round(num * 100, 5)
+
+
+def metric_byol(model_nm, model, val_loader):
+    model.cuda()
+    preds_out = []
+    preds_probs = []
+    classes_out = []
+    with torch.no_grad():
+        for i, (inputs, classes) in enumerate(val_loader):
+            inputs = inputs.cuda()
+            classes = classes.cuda()
+            outputs = model(inputs)
+            soft_outs = outputs.softmax(1)
+            # Getting probability of the 1st index to be used for getting amximum threshold
+            pred_prob = soft_outs[:, 1].float().cpu().detach().numpy()
+            preds_probs.extend(pred_prob)
+            _, preds = torch.max(soft_outs, 1)
+            preds_out.extend(preds.float().cpu().detach().numpy())
+            classes_out.extend(classes.float().cpu().detach().numpy())
+    calc_metrics(preds_probs, classes_out, model_nm)
+    tn, fp, fn, tp = confusion_matrix(classes_out, preds_out).ravel()
+    accuracy = accuracy_score(classes_out, preds_out)
+    sensitivity = tp / (tp + fn)
+    specificity = tn / (tn + fp)
+    npv = tn / (tn + fn)
+    gmeans = np.sqrt(sensitivity * specificity)
+    print(
+        "\nFollowing are the metrics for " + model_nm + ": Sensitivity:",
+        pretty_per_num(sensitivity),
+        "Specificity:",
+        pretty_per_num(specificity),
+        "Accuracy:",
+        pretty_per_num(accuracy),
+        "NPV:",
+        pretty_per_num(npv),
+        "GMeans",
+        pretty_per_num(gmeans),
+    )
 
 
 transform = transforms.Compose(
@@ -284,7 +316,7 @@ batch_size = 25
 
 data_folder = "512"
 data_dir = "/blue/daisyw/iharmon1/data/SIIM-ISIC/data/"
-savepath = "."
+savepath = "./"
 # 2020 data
 df_train = pd.read_csv(
     os.path.join(data_dir, f"jpeg-melanoma-{data_folder}x{data_folder}", "train.csv")
@@ -334,29 +366,26 @@ train_loader = DataLoader(
 val_loader = DataLoader(val_set, batch_size=batch_size, num_workers=5, pin_memory=True)
 
 ##Supervision
-model = EfficientNet.from_pretrained("efficientnet-b5")
+model = EfficientNet.from_pretrained("efficientnet-b5", num_classes=2)
 
 supervised = SupervisedLightningModule(model)
 trainer = pl.Trainer(max_epochs=10, gpus=1, profiler="simple")
 trainer.fit(supervised, train_loader, val_loader)
 
-torch.save(model.state_dict(), savepath + "/EfficientnetB5")
+model_nm = "EfficientnetB5"
+metric_byol(model_nm, model, val_loader)
 
-model.cuda()
-acc = sum([accuracy(model(x.cuda()), y.cuda()) for x, y in val_loader]) / len(
-    val_loader
-)
-print(f"Accuracy without BYOL self-supervision: {acc:.3f}")
+torch.save(model.state_dict(), savepath + model_nm)
 
 del model
 
 
 ##Self-Supervision
 
-model = EfficientNet.from_pretrained("efficientnet-b5")
+model = EfficientNet.from_pretrained("efficientnet-b5", num_classes=2)
 byol = BYOL(model, image_size=(int(data_folder) - 64, int(data_folder) - 64))
 trainer = pl.Trainer(
-    max_epochs=10, gpus=1, accumulate_grad_batches=2048 // 128, profiler="simple"
+    max_epochs=30, gpus=1, accumulate_grad_batches=2048 // 128, profiler="simple"
 )
 trainer.fit(byol, train_loader, val_loader)
 
@@ -365,7 +394,7 @@ del model
 ##Supervision
 
 
-model = EfficientNet.from_pretrained("efficientnet-b5")
+model = EfficientNet.from_pretrained("efficientnet-b5", num_classes=2)
 model.load_state_dict(torch.load(savepath + "/BYOL_Selfsupervision_EfficientnetB5"))
 
 supervised = SupervisedLightningModule(model)
@@ -373,11 +402,8 @@ trainer = pl.Trainer(max_epochs=10, gpus=1, profiler="simple")
 trainer.fit(supervised, train_loader, val_loader)
 
 
-model.cuda()
-acc = sum([accuracy(model(x.cuda()), y.cuda()) for x, y in val_loader]) / len(
-    val_loader
-)
-print(f"Accuracy with BYOL self-supervision: {acc:.3f}")
+model_nm = "BYOL_EfficientnetB5"
+metric_byol(model_nm, model, val_loader)
 
-torch.save(model.state_dict(), savepath + "/BYOL_EfficientnetB5")
+torch.save(model.state_dict(), savepath + model_nm)
 
