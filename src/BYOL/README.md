@@ -54,6 +54,8 @@ To train the BYOL with Efficientnetb5 model on the hipergator, run the following
 sbatch efficientnet.sh
 ```
 
+One can look at the [README](https://github.com/01-vyom/melanoma-classification/blob/main/results/README_BYOL.md) file for more experiment information.
+
 ## Evaluation
 
 Evaluation for both the models over their validation set can be done by running the following command:

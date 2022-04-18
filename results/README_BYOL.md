@@ -1,4 +1,4 @@
-# Experiment on BYOL
+# BYOL Experiments
 
 This experiment was conducted to compare the effect of BYOL on melanoma classification for imaged of size 512X512. Furthermore, two CNN backbone architecture are compared namely ResNet-101, and EfficientNetB5. The BYOL experiment has the following results:
 
