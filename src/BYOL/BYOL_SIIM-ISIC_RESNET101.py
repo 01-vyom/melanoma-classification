@@ -315,7 +315,7 @@ transform = transforms.Compose(
 batch_size = 32
 
 data_folder = "512"
-data_dir = "/blue/daisyw/iharmon1/data/SIIM-ISIC/data/"
+data_dir = "./"
 savepath = "./"
 # 2020 data
 df_train = pd.read_csv(

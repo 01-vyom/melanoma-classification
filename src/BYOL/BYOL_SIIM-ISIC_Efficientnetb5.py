@@ -19,9 +19,9 @@ import pytorch_lightning as pl
 from torch import optim
 import torch.nn.functional as f
 import torch
+import torchvision.transforms as transforms
 
 from torch.utils.data import DataLoader, Dataset, random_split
-from torchvision.models import resnet101
 from numpy import random
 from sklearn.metrics import confusion_matrix, accuracy_score
 
@@ -309,10 +309,14 @@ def metric_byol(model_nm, model, val_loader):
     )
 
 
+transform = transforms.Compose(
+    [transforms.ToTensor(), transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
+)
 batch_size = 25
+
 data_folder = "512"
-data_dir = "/blue/daisyw/iharmon1/data/SIIM-ISIC/data/"
-savepath = "."
+data_dir = "./"
+savepath = "./"
 # 2020 data
 df_train = pd.read_csv(
     os.path.join(data_dir, f"jpeg-melanoma-{data_folder}x{data_folder}", "train.csv")
@@ -342,10 +346,10 @@ df_train = df_train.sample(frac=1, random_state=seed).reset_index(drop=True)
 print(df_train)
 
 TRAIN_DATASET = MelanomaDataset(df_train, mode="train", meta_features=None)
-
 total = len(df_train)
 
 train_ratio = 0.80
+
 train_set, val_set = random_split(
     TRAIN_DATASET,
     [int(total * train_ratio), total - int(total * train_ratio)],
@@ -361,26 +365,45 @@ train_loader = DataLoader(
 )
 val_loader = DataLoader(val_set, batch_size=batch_size, num_workers=5, pin_memory=True)
 
-savepath = "."
-model_nm = "BYOL_RESNET101"
-model = resnet101()
-model.load_state_dict(torch.load(savepath + "/" + model_nm))
-metric_byol(model_nm, model, val_loader)
+##Supervision
+model = EfficientNet.from_pretrained("efficientnet-b5", num_classes=2)
 
-savepath = "."
-model_nm = "RESNET101"
-model = resnet101()
-model.load_state_dict(torch.load(savepath + "/" + model_nm))
-metric_byol(model_nm, model, val_loader)
+supervised = SupervisedLightningModule(model)
+trainer = pl.Trainer(max_epochs=10, gpus=1, profiler="simple")
+trainer.fit(supervised, train_loader, val_loader)
 
-savepath = "."
-model_nm = "BYOL_EfficientnetB5"
-model = EfficientNet.from_pretrained("efficientnet-b5")
-model.load_state_dict(torch.load(savepath + "/" + model_nm))
-metric_byol(model_nm, model, val_loader)
-
-savepath = "."
 model_nm = "EfficientnetB5"
-model = EfficientNet.from_pretrained("efficientnet-b5")
-model.load_state_dict(torch.load(savepath + "/" + model_nm))
 metric_byol(model_nm, model, val_loader)
+
+torch.save(model.state_dict(), savepath + model_nm)
+
+del model
+
+
+##Self-Supervision
+
+model = EfficientNet.from_pretrained("efficientnet-b5", num_classes=2)
+byol = BYOL(model, image_size=(int(data_folder) - 64, int(data_folder) - 64))
+trainer = pl.Trainer(
+    max_epochs=30, gpus=1, accumulate_grad_batches=2048 // 128, profiler="simple"
+)
+trainer.fit(byol, train_loader, val_loader)
+
+torch.save(model.state_dict(), savepath + "/BYOL_Selfsupervision_EfficientnetB5")
+del model
+##Supervision
+
+
+model = EfficientNet.from_pretrained("efficientnet-b5", num_classes=2)
+model.load_state_dict(torch.load(savepath + "/BYOL_Selfsupervision_EfficientnetB5"))
+
+supervised = SupervisedLightningModule(model)
+trainer = pl.Trainer(max_epochs=10, gpus=1, profiler="simple")
+trainer.fit(supervised, train_loader, val_loader)
+
+
+model_nm = "BYOL_EfficientnetB5"
+metric_byol(model_nm, model, val_loader)
+
+torch.save(model.state_dict(), savepath + model_nm)
+

@@ -1,4 +1,24 @@
-# Below are the top ten gmeans and their corresponding threshold values for each model
+# Ensemble Results
+
+- 7500 Samples equally from each of the 5 folds for each of the models were used to find the performance of the models. Also, we used the models which do not use meta-data.
+
+- The 9 models which were ensembled were:
+
+  - 9c_b5ns_1.5e_640_ext_15ep
+  - 9c_b4ns_768_768_ext_15ep
+  - 9c_nest101_2e_640_ext_15ep
+  - 9c_b4ns_2e_896_ext_15ep
+  - 9c_b6ns_640_ext_15ep
+  - 9c_b7ns_1e_640_ext_15ep
+  - 9c_b4ns_768_640_ext_15ep
+  - 4c_b5ns_1.5e_640_ext_15ep
+  - 9c_se_x101_640_ext_15ep
+
+- The results are as follows:
+  - AUC_Score: 98.3 Best Threshold=0.117822, G-Mean=93.820, NPV=99.300 Sensitivity: 92.74 Specificity: 94.74 Accuracy: 94.57.
+
+
+## Below are the top ten gmeans and their corresponding threshold values for each model
 
 ## Model (1): 9c_meta_b3_768_512_ext_18ep
 

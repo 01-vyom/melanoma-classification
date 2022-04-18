@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=RESNET101
-#SBATCH --output=vasp.out
-#SBATCH --error=vasp.err
+#SBATCH --job-name=EfficientNet
+#SBATCH --output=vaspeff.out
+#SBATCH --error=vaspeff.err
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=v.pathak@ufl.edu
 #SBATCH --nodes=1                    
@@ -20,7 +20,7 @@ module purge
 ml pytorch/1.8.1
 
 T1=$(date +%s)
-python BYOL_SIIM-ISIC_RESNET.py
+python BYOL_SIIM-ISIC_Efficientnetb5.py
 T2=$(date +%s)
 
 ELAPSED=$((T2 - T1))
