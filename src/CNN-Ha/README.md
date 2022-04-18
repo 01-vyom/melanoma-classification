@@ -91,7 +91,7 @@ Optionally, you can evaluate each model on 5 fold cross valiation sets. You can 
 
 Evaluation results will be printed out and saved to `./logs/` Out-of-folds prediction results will be saved to `./oofs/`
 
-**In our experiments, we evaluate all models and save the outputs in the `../../results` folder. One can look at the [README](https://github.com/01-vyom/melanoma-classification/results/README_CNN-Ha.md) file for more experiment information.**
+**In our experiments, we evaluate all models and save the outputs in the `../../results` folder. One can look at the [README](https://github.com/01-vyom/melanoma-classification/blob/main/results/README_CNN-Ha.md) file for more experiment information.**
 
 ```
 python evaluate.py --kernel-type 9c_meta_b3_768_512_ext_18ep --data-dir ./data/ --data-folder 768 --image-size 512 --enet-type efficientnet_b3 --use-meta
