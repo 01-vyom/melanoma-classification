@@ -31,7 +31,11 @@ done
 
 ## Model Illustration
 
+### Original CNN-Ensemble Architecture
 ![](https://github.com/haqishen/SIIM-ISIC-Melanoma-Classification-1st-Place-Solution/blob/master/figure1.png)
+
+### Adopted CNN-Ensemble Architecture
+![](https://github.com/01-vyom/melanoma-classification/blob/main/src/CNN-Ha/HaCNN.png)
 
 More details can be found here: 
 
