@@ -4,7 +4,7 @@
 
 [Vyom Pathak](https://www.linkedin.com/in/01-vyom/)<sup>1</sup> | [Sanjana Rao](https://www.linkedin.com/in/sanjanaraogp/)<sup>1</sup>
 
-<sup>1</sup>[Computer & Information Science & Engineering, University of Florida, Gainesville, Florida, USA](https://www.cise.ufl.edu/)
+[Computer & Information Science & Engineering, University of Florida, Gainesville, Florida, USA](https://www.cise.ufl.edu/)<sup>1</sup>
 
 We present an ensemble of image-only convolutions neural network (CNN) models with different backbones and input sizes along with a self-supervised model to classify skin lesions. We have devised the first ensemble based on the winning solution to Kaggle's SIIM-ISIC Melanoma Classification challenge (We will be referring to this as the Ha-CNN model going further) and Bootstrap your own latent (BYOL) model which is based on self-supervised learning. The models have experimented with the SIIM-ISIC Melanoma dataset (2018-2020). Using specificity and sensitivity as the performance metrics, nine top-performing models were selected out of the eighteen models proposed in the Ha-CNN paper. We experimented BYOL model with two different backbones - ResNet and EfficientNet. The Ha-CNN model achieves a specificity and sensitivity of 94.3% and 92.1%  with a negative predictive value of 99.2%. As with the BYOL model, our results show an increase of 1.00% for the ResNet-101 model supervision (94.73% and 93.40%) and an increase of 
 1.00% for the Efficient-B5 model (97.24% and 96.34%) with and without BYOL-self-supervision.
